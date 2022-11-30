@@ -45,8 +45,13 @@ class ReefscanCotsDetectorSimulated(object):
         new_sequenced_detection.sequence_id = 123
         new_sequenced_detection.sequence_length = 1234567890
         new_sequenced_detection.sequence_length = 7890
-        new_sequenced_detection.detection = [new_detection]
+        new_sequenced_detection.detection = new_detection
 
+        new_sequenced_detection2 = SequencedDetection()
+        new_sequenced_detection2.sequence_id = 255
+        new_sequenced_detection2.sequence_length = 987654310
+        new_sequenced_detection2.sequence_length = 7890
+        new_sequenced_detection2.detection = new_detection
 
 
         
@@ -57,7 +62,7 @@ class ReefscanCotsDetectorSimulated(object):
             self.cots_image_number = 4 * 60 * random.random()
             self.counter = 0
             thing = FrameDetections()
-            thing.results = [new_sequenced_detection]
+            thing.results = [new_sequenced_detection, new_sequenced_detection2]
 
 
             self.pub_reefscan_cots_detected.publish(thing)
