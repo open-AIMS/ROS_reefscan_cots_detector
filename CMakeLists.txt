@@ -49,15 +49,6 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
 
 
-add_message_files(
-  FILES
-  DetectionResult.msg
-  Detection.msg
-  SequencedDetection.msg
-  FrameDetections.msg
-)
-
-
 ## Generate services in the 'srv' folder
 # add_service_files(
 #   FILES
@@ -78,11 +69,6 @@ add_message_files(
 #   std_msgs
 # )
 
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-  ccip_msgs
-)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
