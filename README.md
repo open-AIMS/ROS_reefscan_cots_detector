@@ -21,7 +21,7 @@ NONE
 
 ## Deploy  
    `mkdir -p ~/catkin_ws/src`
-   # COPY everything in this repository to ~/catkin_ws/src/reefscan_cots_detector/
+   `# COPY everything in this repository to ~/catkin_ws/src/reefscan_cots_detector/`
    `cd ~/catkin_ws`
    `chmod a+x src/reefscan_cots_detector/src/reefscan_cots_detector_simulated.py`  
    `catkin_make`  
