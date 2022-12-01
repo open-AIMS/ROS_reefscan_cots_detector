@@ -91,6 +91,7 @@ class ReefscanCotsDetectorSimulated(object):
 
             # Construct the FrameDetections message that contains SequencedDetections
             thing = FrameDetections()
+            thing.header = data.header
             thing.results = [new_sequenced_detection, new_sequenced_detection2]
 
 
