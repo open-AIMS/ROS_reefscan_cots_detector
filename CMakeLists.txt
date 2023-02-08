@@ -10,6 +10,7 @@ project(reefscan_cots_detector)
 find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
+  sensor_msgs
   message_generation
 )
 
@@ -69,6 +70,12 @@ find_package(catkin REQUIRED COMPONENTS
 #   std_msgs
 # )
 
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  sensor_msgs
+  ccip_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
