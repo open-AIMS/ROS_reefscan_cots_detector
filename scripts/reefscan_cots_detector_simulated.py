@@ -54,11 +54,15 @@ class ReefscanCotsDetectorSimulated(object):
         new_detection_result.class_id = 1
         new_detection_result.score = 0.33333
 
+        new_detection_result2 = DetectionResult()
+        new_detection_result2.class_id = 2
+        new_detection_result2.score = 0.66666
+
         # Create a Detection with random data that includes the 
         # DetectionResult message
         new_detection = Detection()
         new_detection.detection_id = 123
-        new_detection.detection_results = [new_detection_result]
+        new_detection.detection_results = [new_detection_result, new_detection_result2]
         new_detection.left_x = 123
         new_detection.top_y = 123
         new_detection.width = 123
