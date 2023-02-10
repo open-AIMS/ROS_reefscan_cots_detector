@@ -37,7 +37,7 @@ TOPIC_REEFSCAN_COTS_DETECTED = '/reefscan_cots_detected'
 TOPIC_REEFSCAN_COTS_SEQUENCE = '/reefscan_cots_sequence'
 
 
-class ReefscanCotsSequencer(self):
+class ReefscanCotsSequencer():
     # Function:     __init(self)
     # Description:  Initialise counters and create ROS publisher and scubscriber objects
     def __init__(self):
