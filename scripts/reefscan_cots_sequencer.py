@@ -37,7 +37,7 @@ TOPIC_REEFSCAN_COTS_DETECTED = '/reefscan_cots_detected'
 TOPIC_REEFSCAN_COTS_SEQUENCE = '/reefscan_cots_sequence'
 
 
-class ReefscanCotsSequencer(object):
+class ReefscanCotsSequencer(self):
     # Function:     __init(self)
     # Description:  Initialise counters and create ROS publisher and scubscriber objects
     def __init__(self):
@@ -50,7 +50,10 @@ class ReefscanCotsSequencer(object):
         self.max_scores = {}
         self.seen = {}
 
-
+    # Function:     _read_image(self, filename)
+    # Description:  Helper function that loads the image from the disk for insertion 
+    #               into the message.  The image resized for preview only and is 
+    #               compressed to save bandwidth.
     def _read_image(self, filename):
         photo = cv2.imread(filename)
         rospy.loginfo(filename + "`.")
@@ -59,7 +62,7 @@ class ReefscanCotsSequencer(object):
         photo_compressed_msg.header.frame_id = filename
         return photo_compressed_msg
     
-    # Function:     detect_cots_callback(self, data)
+    # Function:     restructure_cots_detected(self, data)
     # Description:  Callback that ROS invokes when an Image is received.  Triggers the COTS detection simulated event
     def restructure_cots_detected(self, data):
         rospy.loginfo("restructure.")
@@ -99,11 +102,10 @@ class ReefscanCotsSequencer(object):
                                 "score": detection_result.score
                         }
                     )
-                    #rospy.loginfo(self.sequences[str(result.sequence_id)]["detection"][str(result.detection.detection_id)]["scores"])
                     # This is the first time we have seen this sequence so the scores will be the max
                     self.max_scores[str(result.sequence_id)][str(detection_result.class_id)] = detection_result.score
             else:
-                rospy.loginfo("Already in seuqnces")
+                rospy.logdebug("Already in seen sequences")
                 # Process the scores first
                 scores = []
                 for detection_result in result.detection.detection_results:
@@ -131,10 +133,10 @@ class ReefscanCotsSequencer(object):
                     "height": result.detection.height,
                     "scores": scores
                 }
-                #rospy.loginfo(self.sequences)
-# 
 
                 
+    # Function:     restructure_cots_detected(self, data)
+    # Description:  Callback that ROS invokes when an timer event occurs. Publishes sequences to '/reefscan_cots_sequence'
     def publish_status(self, data):
         delete = {}
         # Go through all the sequences and figure out
@@ -152,7 +154,7 @@ class ReefscanCotsSequencer(object):
                     detection = sequence['detection'][detection_id]
                     cots_detection = CotsDetection()
                     cots_detection.detection_id = int(detection_id)
-                    #cots_detection.image = detection["Image"]
+                    cots_detection.image = detection["Image"]
                     cots_detection.detection_id = detection["detection_id"]
                     cots_detection.left = detection["left"]
                     cots_detection.top = detection["top"]
@@ -167,7 +169,7 @@ class ReefscanCotsSequencer(object):
                         cots_detection.detection_results.append(d)
                 cots_sequence.detection.append(cots_detection)
 
-                #CotsMaximumScore[] maximum_scores
+                # Calculate the maximum score for each class that is detected and insert into message
                 maximum_scores = []
                 for class_id in self.max_scores[str(sequence_id)]:
                 # self.max_scores[str(result.sequence_id)][str(detection_result.class_id)] = detection_result.score
@@ -181,7 +183,12 @@ class ReefscanCotsSequencer(object):
 
                 # Send the FrameDetection message
                 self.pub_reefscan_cots_sequence.publish(cots_sequence)
+
+
+                # Record the sequences that we intend to send so they can be removed from our list of sequences we have seen
                 delete[sequence_id] = True
+
+        # Remove sequences that we just sent out.
         for sequence_id in delete:
             rospy.loginfo("Deleting" + sequence_id)
             del self.seen[sequence_id]
