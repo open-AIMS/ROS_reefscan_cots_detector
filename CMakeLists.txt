@@ -172,8 +172,8 @@ include_directories(
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
-  src/reefscan_cots_detector_simulated.py
-  src/reefscan_cots_sequencer.py
+  scripts/reefscan_cots_detector_simulated.py
+  scripts/reefscan_cots_sequencer.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
