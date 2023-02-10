@@ -5,6 +5,9 @@ ROS node which simulates COTS detection (at random)
     reefscan_cots_detector_simulated.py
         A node called reefscan_cots_detector_simulated which simulates COTS 
         detection at random.
+    reefscan_cots_sequencer.py
+	A module for restructuring COTS detection messages and summarising 
+	categorisation results.
 
 
 ## Develop dependencies  
@@ -19,14 +22,18 @@ NONE
 
 NONE
 
-## Deploy  
-   `mkdir -p ~/catkin_ws/src`
-   `# COPY everything in this repository to ~/catkin_ws/src/reefscan_cots_detector/`
-   `cd ~/catkin_ws`
-   `chmod a+x src/reefscan_cots_detector/src/reefscan_cots_detector_simulated.py`  
-   `catkin_make`  
-   `source ~/catkin_ws/devel/setup.bash`  
+## Deploy
+```
+mkdir -p ~/catkin_ws/src
+# COPY everything in this repository to ~/catkin_ws/src/reefscan_cots_detector/
+cd ~/catkin_ws
+chmod a+x src/reefscan_cots_detector/src/reefscan_cots_detector_simulated.py  
+catkin_make  
+source ~/catkin_ws/devel/setup.bash  
+```
 
 ## Start on DEV server
-
-   `rosrun reefscan_cots_detector reefscan_cots_detector_simulated.py`
+```
+rosrun reefscan_cots_detector reefscan_cots_detector_simulated.py
+rosrun reefscan_cots_detector reefscan_cots_sequencer.py
+```
