@@ -55,6 +55,7 @@ add_message_files(
   CotsDetection.msg
   CotsMaximumScore.msg
   CotsSequence.msg
+  CotsConfirmedClass.msg
 )
 
 
@@ -174,6 +175,7 @@ include_directories(
 catkin_install_python(PROGRAMS
   scripts/reefscan_cots_detector_simulated.py
   scripts/reefscan_cots_sequencer.py
+  scripts/reefscan_cots_confirmed_class.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
