@@ -29,13 +29,25 @@ import random
 from ccip_msgs.msg import DetectionResult, Detection, SequencedDetection, FrameDetections, SequenceSummary, DetectionSummary
 from reefscan_cots_detector.msg import CotsSequence, CotsDetection, CotsMaximumScore
 from reefscan_image_utils import resize_for_preview
+include_images = True
 
 
 # Topic to subscribe to 
-TOPIC_REEFSCAN_COTS_DETECTED = '/reefscan_cots_detected'
+TOPIC_REEFSCAN_COTS_DETECTED = '/detections'
 # Topic to publish messages
 TOPIC_REEFSCAN_COTS_SEQUENCE = '/reefscan_cots_sequence'
 
+def compare_detection(old_detection, new_detection):
+    if old_detection["detection_id"] != new_detection['detection_id'] or old_detection["left"] != new_detection['left'] or old_detection["top"] != new_detection['top'] or old_detection["width"] != new_detection['width'] or old_detection["height"] != new_detection['height'] or old_detection["scores"] != new_detection['scores']: 
+        return False
+    else:
+        return True
+
+def detection_is_different(new_detection, detections):
+    for detection in detections.values():
+        if compare_detection(new_detection, detection) == False:
+            return True
+    return False
 
 class ReefscanCotsSequencer():
     # Function:     __init(self)
@@ -49,6 +61,7 @@ class ReefscanCotsSequencer():
         self.sequences = {}
         self.max_scores = {}
         self.seen = {}
+        self.updating = False
 
     # Function:     _read_image(self, filename)
     # Description:  Helper function that loads the image from the disk for insertion 
@@ -66,37 +79,48 @@ class ReefscanCotsSequencer():
     # Description:  Callback that ROS invokes when an Image is received.  Triggers the COTS detection simulated event
     def restructure_cots_detected(self, data):
         rospy.loginfo("restructure.")
+        if self.updating == True:
+            return
+        self.updating = True
         #rospy.loginfo(data)
         rospy.loginfo(data.header.frame_id)
         filename = data.header.frame_id
+        rospy.loginfo("restructure. frame id: %s" % filename)
 
         # Each result is a SequencedDetection
         for result in data.results:
             self.seen[str(result.sequence_id)] = time.time()
             if not str(result.sequence_id) in self.sequences:
                 #rospy.loginfo("Not in seuqnces")
-                self.sequences[str(result.sequence_id)] = {}
-                self.sequences[str(result.sequence_id)]["sequence_length"] = result.sequence_length
-                self.sequences[str(result.sequence_id)]["size"] = result.size
-                self.sequences[str(result.sequence_id)]["detection"] = {}
+                rospy.loginfo("restructure. first time I have seen sequence id : %d" % result.sequence_id)
+                new_cots_sequence = {}
+                new_cots_sequence["sequence_length"] = result.sequence_length
+                new_cots_sequence["size"] = result.size
+                new_cots_sequence["detection"] = {}
 
-                if not str(result.detection.detection_id) in self.sequences[str(result.sequence_id)]["detection"]:
-                    self.sequences[str(result.sequence_id)]["detection"][str(result.detection.detection_id)] = {}
+                if not str(result.detection.detection_id) in new_cots_sequence["detection"]:
+                    new_cots_sequence["detection"][str(result.detection.detection_id)] = {}
 
-                self.sequences[str(result.sequence_id)]["detection"][str(result.detection.detection_id)]["Image"] = self._read_image(filename)
-                self.sequences[str(result.sequence_id)]["detection"][str(result.detection.detection_id)]["detection_id"] = result.detection.detection_id
-                self.sequences[str(result.sequence_id)]["detection"][str(result.detection.detection_id)]["left"] = result.detection.left_x
-                self.sequences[str(result.sequence_id)]["detection"][str(result.detection.detection_id)]["top"] = result.detection.top_y
-                self.sequences[str(result.sequence_id)]["detection"][str(result.detection.detection_id)]["width"] = result.detection.width
-                self.sequences[str(result.sequence_id)]["detection"][str(result.detection.detection_id)]["height"] = result.detection.height
-                self.sequences[str(result.sequence_id)]["detection"][str(result.detection.detection_id)]["scores"] = []
+                rospy.loginfo("restructure. first time I have seen sequence id : %s: adding detection id %d " % (result.sequence_id, result.detection.detection_id))
+
+                if include_images == True:
+                    new_cots_sequence["detection"][str(result.detection.detection_id)]["Image"] = self._read_image(filename)
+                else:
+                    new_cots_sequence["detection"][str(result.detection.detection_id)]["Image"] = ""
+
+                new_cots_sequence["detection"][str(result.detection.detection_id)]["detection_id"] = result.detection.detection_id
+                new_cots_sequence["detection"][str(result.detection.detection_id)]["left"] = result.detection.left_x
+                new_cots_sequence["detection"][str(result.detection.detection_id)]["top"] = result.detection.top_y
+                new_cots_sequence["detection"][str(result.detection.detection_id)]["width"] = result.detection.width
+                new_cots_sequence["detection"][str(result.detection.detection_id)]["height"] = result.detection.height
+                new_cots_sequence["detection"][str(result.detection.detection_id)]["scores"] = []
                 self.max_scores[str(result.sequence_id)] = {}
                 #rospy.loginfo(self.sequences)
 
 
                 for detection_result in result.detection.detection_results:
                     #rospy.loginfo(detection_result)
-                    self.sequences[str(result.sequence_id)]["detection"][str(result.detection.detection_id)]["scores"].append(
+                    new_cots_sequence["detection"][str(result.detection.detection_id)]["scores"].append(
                         {
                                 "class_id": detection_result.class_id, 
                                 "score": detection_result.score
@@ -104,8 +128,14 @@ class ReefscanCotsSequencer():
                     )
                     # This is the first time we have seen this sequence so the scores will be the max
                     self.max_scores[str(result.sequence_id)][str(detection_result.class_id)] = detection_result.score
+
+                self.sequences[str(result.sequence_id)] = new_cots_sequence
+
             else:
                 rospy.logdebug("Already in seen sequences")
+                rospy.loginfo("restructure. already seen sequence id : %d" % result.sequence_id)
+                editing_cots_sequence = self.sequences[str(result.sequence_id)]
+                
                 # Process the scores first
                 scores = []
                 for detection_result in result.detection.detection_results:
@@ -117,6 +147,8 @@ class ReefscanCotsSequencer():
                         }
                     )
                     # If we have not recorded a maximum for the class id this score is the new maximum
+                    rospy.logdebug(str(self.max_scores))
+                    
                     if not str(detection_result.class_id) in self.max_scores[str(result.sequence_id)]:
                         self.max_scores[str(result.sequence_id)][str(detection_result.class_id)] = detection_result.score
                     # If we have recorded a maximum for the class id this score is only the new 
@@ -124,8 +156,10 @@ class ReefscanCotsSequencer():
                     elif self.max_scores[str(result.sequence_id)][str(detection_result.class_id)] < detection_result.score:
                         self.max_scores[str(result.sequence_id)][str(detection_result.class_id)] = detection_result.score
 
-                self.sequences[str(result.sequence_id)]["detection"][str(result.detection.detection_id)] = {
-                    "Image":  self._read_image(filename),
+                rospy.logdebug(str(result.sequence_id))
+                rospy.logdebug(str(result.detection.detection_id))
+                rospy.loginfo("restructure. already seen sequence id : %d overwriting detection with id %d" % (result.sequence_id, result.detection.detection_id))
+                new_detection = {
                     "detection_id": result.detection.detection_id,
                     "left": result.detection.left_x,
                     "top": result.detection.top_y,
@@ -134,6 +168,25 @@ class ReefscanCotsSequencer():
                     "scores": scores
                 }
 
+                if include_images == True:
+                    new_detection["Image"] = self._read_image(filename)
+                else:
+                    new_detection["Image"] = ""
+
+                if (detection_is_different(new_detection, editing_cots_sequence["detection"])):
+                    new_id = len(editing_cots_sequence["detection"].keys()) + 1
+                    editing_cots_sequence["detection"][str(new_id)] = new_detection
+                    rospy.loginfo("restructure. already seen sequence id : %d overwriting detection with id %d detection is now: %s (new_id is %d)" % (result.sequence_id, result.detection.detection_id, str({
+                        "Image": "sensored" ,
+                        "detection_id": result.detection.detection_id,
+                        "left": result.detection.left_x,
+                        "top": result.detection.top_y,
+                        "width": result.detection.width,
+                        "height": result.detection.height,
+                        "scores": scores
+                    }), new_id))
+        self.updating = False
+
                 
     # Function:     restructure_cots_detected(self, data)
     # Description:  Callback that ROS invokes when an timer event occurs. Publishes sequences to '/reefscan_cots_sequence'
@@ -141,6 +194,11 @@ class ReefscanCotsSequencer():
         delete = {}
         # Go through all the sequences and figure out
         rospy.loginfo("PUBLISH")
+        if self.updating == True:
+            return
+
+        self.updating = True
+
         for sequence_id in self.seen:
             if self.seen[sequence_id] < time.time() - 1:
                 rospy.loginfo(sequence_id)
@@ -154,20 +212,30 @@ class ReefscanCotsSequencer():
                     detection = sequence['detection'][detection_id]
                     cots_detection = CotsDetection()
                     cots_detection.detection_id = int(detection_id)
-                    cots_detection.image = detection["Image"]
-                    cots_detection.detection_id = detection["detection_id"]
+                    if "Image" in detection:
+                        cots_detection.image = detection["Image"]
+                    else:
+                        rospy.loginfo("image missing from cots_detection during publish. sequence id %d" % sequence_id)
+                        rospy.loginfo(str(cots_detection))
+                        
+                    if "detection_id" in detection:
+                        cots_detection.detection_id = detection["detection_id"]
+                    else:
+                        rospy.loginfo("detection_id missing from cots_detection during publish")
+                        rospy.loginfo(str(cots_detection))
                     cots_detection.left = detection["left"]
                     cots_detection.top = detection["top"]
                     cots_detection.width = detection["width"]
                     cots_detection.height = detection["height"]
                     cots_detection.detection_results = []
+                    rospy.loginfo(cots_detection)
 
                     for score in detection['scores']:
                         d = DetectionResult()
                         d.class_id = score['class_id']
                         d.score = score['score']
                         cots_detection.detection_results.append(d)
-                cots_sequence.detection.append(cots_detection)
+                    cots_sequence.detection.append(cots_detection)
 
                 # Calculate the maximum score for each class that is detected and insert into message
                 maximum_scores = []
@@ -182,7 +250,11 @@ class ReefscanCotsSequencer():
                 #rospy.loginfo(cots_sequence)
 
                 # Send the FrameDetection message
-                self.pub_reefscan_cots_sequence.publish(cots_sequence)
+                #rospy.loginfo(cots_sequence)
+                if include_images:
+                    self.pub_reefscan_cots_sequence.publish(cots_sequence)
+                else:
+                    rospy.loginfo(cots_sequence)
 
 
                 # Record the sequences that we intend to send so they can be removed from our list of sequences we have seen
@@ -193,6 +265,8 @@ class ReefscanCotsSequencer():
             rospy.loginfo("Deleting" + sequence_id)
             del self.seen[sequence_id]
             del self.sequences[sequence_id]
+
+        self.updating = False
 
 if __name__ == '__main__':
     # Initialise node with rospy
