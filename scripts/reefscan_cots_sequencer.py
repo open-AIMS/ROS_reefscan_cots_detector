@@ -29,6 +29,7 @@ import random
 from ccip_msgs.msg import DetectionResult, Detection, SequencedDetection, FrameDetections, SequenceSummary, DetectionSummary
 from reefscan_cots_detector.msg import CotsSequence, CotsDetection, CotsMaximumScore
 from reefscan_image_utils import resize_for_preview
+from reefscan.msg import Reefscan_status
 include_images = True
 
 
@@ -36,6 +37,8 @@ include_images = True
 TOPIC_REEFSCAN_COTS_DETECTED = '/detections'
 # Topic to publish messages
 TOPIC_REEFSCAN_COTS_SEQUENCE = '/reefscan_cots_sequence'
+# Topic to read sequence_names from
+TOPIC_REEFSCAN_SEQUENCE_INFO = '/reefscan_status'
 
 def compare_detection(old_detection, new_detection):
     if old_detection["detection_id"] != new_detection['detection_id'] or old_detection["left"] != new_detection['left'] or old_detection["top"] != new_detection['top'] or old_detection["width"] != new_detection['width'] or old_detection["height"] != new_detection['height'] or old_detection["scores"] != new_detection['scores']: 
@@ -56,12 +59,26 @@ class ReefscanCotsSequencer():
         rospy.loginfo("init.")
         self.cv_bridge = CvBridge()
         self.sub_reefscan_cots_detected = rospy.Subscriber(TOPIC_REEFSCAN_COTS_DETECTED, FrameDetections,  self.restructure_cots_detected)
+        self.pub_reefscan_sequence_info = rospy.Subscriber(TOPIC_REEFSCAN_SEQUENCE_INFO, Reefscan_status, self.read_reefscan_status)
         self.pub_reefscan_cots_sequence = rospy.Publisher(TOPIC_REEFSCAN_COTS_SEQUENCE, CotsSequence , queue_size=1) 
         self.timer = rospy.Timer(rospy.Duration(1.0), self.publish_status)
         self.sequences = {}
         self.max_scores = {}
         self.seen = {}
         self.updating = False
+        self.sequence_name_for_filename = {}
+
+
+    def read_reefscan_status(self, msg):
+        # rospy.loginfo("inserting a path %s" % msg)
+
+        sequence_path = msg.sequence_path
+        filename_string = msg.filename_string
+        sequence_name = msg.sequence_name
+        full_file_path = sequence_path + "/" + filename_string
+        if full_file_path not in self.sequence_name_for_filename:
+            rospy.loginfo("inserting a path %s" % full_file_path)
+            self.sequence_name_for_filename[full_file_path] = sequence_name
 
     # Function:     _read_image(self, filename)
     # Description:  Helper function that loads the image from the disk for insertion 
@@ -85,6 +102,7 @@ class ReefscanCotsSequencer():
         #rospy.loginfo(data)
         rospy.loginfo(data.header.frame_id)
         filename = data.header.frame_id
+        sequence_name = self.sequence_name_for_filename[filename]
         rospy.loginfo("restructure. frame id: %s" % filename)
 
         # Each result is a SequencedDetection
