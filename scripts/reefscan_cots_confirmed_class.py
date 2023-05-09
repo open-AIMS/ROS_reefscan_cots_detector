@@ -15,24 +15,37 @@ Description:
 
 
 import rospy
+from rospy_message_converter import message_converter
+# ccip_msgs is a module which contains the messages that are sent when COTS is detected
+from reefscan_cots_detector.msg import CotsSequence, CotsDetection, CotsMaximumScore, CotsConfirmedClass
+from reefscan_image_utils import resize_for_preview
+from refscan_utils import write_csv_row, read_all_from_csv, get_ten_photos_around, get_destination_folder
+
+
 
 # Topic to subscribe to confirmations
 TOPIC_REEFSCAN_COTS_CONFIRMATIONS = '/reefscan_cots_sequence_confirmed'
 
+PARAM_DATA_FOLDER = "/reefscan_data_folder"
 
 class ReefscanCotsConfirmedClass(object):
     # Function:     __init(self)
     # Description:  Initialise counters and create ROS publisher and scubscriber objects
     def __init__(self):
+        rospy.loginfo("initing")
         # Subscribe to topic for new images
         self.sub_reefscan_preview = rospy.Subscriber(TOPIC_REEFSCAN_COTS_CONFIRMATIONS, CotsConfirmedClass,  self.write_cots_class_confirmation)
+        self.data_folder, self.error_flag, self.error_message = get_destination_folder()
+
     
     # Function:     write_cots_class_confirmation(self, data)
     # Description:  Receive cots detection confirmations of detected classes and write out to the disk
     def write_cots_class_confirmation(self, msg):
+        rospy.loginfo("Writing")
         msg_dict = message_converter.convert_ros_message_to_dictionary(msg)
         sequence_name = msg_dict["sequence_name"]
         folder_sequence = self.read_data_folder() + "/" + sequence_name
+        rospy.loginfo(folder_sequence)
         write_csv_row(folder_sequence, "cots_class_confirmations.csv", msg_dict)
         
     # Function:     read_data_folder
