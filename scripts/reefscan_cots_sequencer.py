@@ -37,8 +37,6 @@ include_images = True
 TOPIC_REEFSCAN_COTS_DETECTED = '/detections'
 # Topic to publish messages
 TOPIC_REEFSCAN_COTS_SEQUENCE = '/reefscan_cots_sequence'
-# Topic to read sequence_names from
-TOPIC_REEFSCAN_SEQUENCE_INFO = '/reefscan_status'
 
 def compare_detection(old_detection, new_detection):
     if old_detection["detection_id"] != new_detection['detection_id'] or old_detection["left"] != new_detection['left'] or old_detection["top"] != new_detection['top'] or old_detection["width"] != new_detection['width'] or old_detection["height"] != new_detection['height'] or old_detection["scores"] != new_detection['scores']: 
@@ -59,26 +57,12 @@ class ReefscanCotsSequencer():
         rospy.loginfo("init.")
         self.cv_bridge = CvBridge()
         self.sub_reefscan_cots_detected = rospy.Subscriber(TOPIC_REEFSCAN_COTS_DETECTED, FrameDetections,  self.restructure_cots_detected)
-        self.pub_reefscan_sequence_info = rospy.Subscriber(TOPIC_REEFSCAN_SEQUENCE_INFO, Reefscan_status, self.read_reefscan_status)
         self.pub_reefscan_cots_sequence = rospy.Publisher(TOPIC_REEFSCAN_COTS_SEQUENCE, CotsSequence , queue_size=1) 
         self.timer = rospy.Timer(rospy.Duration(1.0), self.publish_status)
         self.sequences = {}
         self.max_scores = {}
         self.seen = {}
         self.updating = False
-        self.sequence_name_for_filename = {}
-
-
-    def read_reefscan_status(self, msg):
-        # rospy.loginfo("inserting a path %s" % msg)
-
-        sequence_path = msg.sequence_path
-        filename_string = msg.filename_string
-        sequence_name = msg.sequence_name
-        full_file_path = sequence_path + "/" + filename_string
-        if full_file_path not in self.sequence_name_for_filename:
-            rospy.loginfo("inserting a path %s" % full_file_path)
-            self.sequence_name_for_filename[full_file_path] = sequence_name
 
     # Function:     _read_image(self, filename)
     # Description:  Helper function that loads the image from the disk for insertion 
@@ -102,7 +86,7 @@ class ReefscanCotsSequencer():
         #rospy.loginfo(data)
         rospy.loginfo(data.header.frame_id)
         filename = data.header.frame_id
-        sequence_name = self.sequence_name_for_filename[filename]
+
         rospy.loginfo("restructure. frame id: %s" % filename)
 
         # Each result is a SequencedDetection
@@ -114,31 +98,28 @@ class ReefscanCotsSequencer():
                 new_cots_sequence = {}
                 new_cots_sequence["sequence_length"] = result.sequence_length
                 new_cots_sequence["size"] = result.size
-                new_cots_sequence["detection"] = {}
-
-                if not str(result.detection.detection_id) in new_cots_sequence["detection"]:
-                    new_cots_sequence["detection"][str(result.detection.detection_id)] = {}
+                new_detection = {}
 
                 rospy.loginfo("restructure. first time I have seen sequence id : %s: adding detection id %d " % (result.sequence_id, result.detection.detection_id))
 
                 if include_images == True:
-                    new_cots_sequence["detection"][str(result.detection.detection_id)]["Image"] = self._read_image(filename)
+                    new_detection["Image"] = self._read_image(filename)
                 else:
-                    new_cots_sequence["detection"][str(result.detection.detection_id)]["Image"] = ""
+                    new_detection["Image"] = ""
 
-                new_cots_sequence["detection"][str(result.detection.detection_id)]["detection_id"] = result.detection.detection_id
-                new_cots_sequence["detection"][str(result.detection.detection_id)]["left"] = result.detection.left_x
-                new_cots_sequence["detection"][str(result.detection.detection_id)]["top"] = result.detection.top_y
-                new_cots_sequence["detection"][str(result.detection.detection_id)]["width"] = result.detection.width
-                new_cots_sequence["detection"][str(result.detection.detection_id)]["height"] = result.detection.height
-                new_cots_sequence["detection"][str(result.detection.detection_id)]["scores"] = []
+                new_detection["detection_id"] = result.detection.detection_id
+                new_detection["left"] = result.detection.left_x
+                new_detection["top"] = result.detection.top_y
+                new_detection["width"] = result.detection.width
+                new_detection["height"] = result.detection.height
+                new_detection["scores"] = []
                 self.max_scores[str(result.sequence_id)] = {}
                 #rospy.loginfo(self.sequences)
 
 
                 for detection_result in result.detection.detection_results:
                     #rospy.loginfo(detection_result)
-                    new_cots_sequence["detection"][str(result.detection.detection_id)]["scores"].append(
+                    new_detection["scores"].append(
                         {
                                 "class_id": detection_result.class_id, 
                                 "score": detection_result.score
@@ -147,6 +128,7 @@ class ReefscanCotsSequencer():
                     # This is the first time we have seen this sequence so the scores will be the max
                     self.max_scores[str(result.sequence_id)][str(detection_result.class_id)] = detection_result.score
 
+                new_cots_sequence["detection"] = [ new_detection ] 
                 self.sequences[str(result.sequence_id)] = new_cots_sequence
 
             else:
@@ -191,18 +173,9 @@ class ReefscanCotsSequencer():
                 else:
                     new_detection["Image"] = ""
 
-                if (detection_is_different(new_detection, editing_cots_sequence["detection"])):
-                    new_id = len(editing_cots_sequence["detection"].keys()) + 1
-                    editing_cots_sequence["detection"][str(new_id)] = new_detection
-                    rospy.loginfo("restructure. already seen sequence id : %d overwriting detection with id %d detection is now: %s (new_id is %d)" % (result.sequence_id, result.detection.detection_id, str({
-                        "Image": "sensored" ,
-                        "detection_id": result.detection.detection_id,
-                        "left": result.detection.left_x,
-                        "top": result.detection.top_y,
-                        "width": result.detection.width,
-                        "height": result.detection.height,
-                        "scores": scores
-                    }), new_id))
+                editing_cots_sequence["detection"].append(new_detection)
+                #print(self.sequences)
+
         self.updating = False
 
                 
@@ -226,10 +199,9 @@ class ReefscanCotsSequencer():
                 cots_sequence.sequence_length = sequence['sequence_length']
                 cots_sequence.size = sequence['size']
                 cots_sequence.detection = []
-                for detection_id in sequence['detection']:
-                    detection = sequence['detection'][detection_id]
+                for detection in sequence['detection']:
                     cots_detection = CotsDetection()
-                    cots_detection.detection_id = int(detection_id)
+                    cots_detection.detection_id = detection['detection_id']
                     if "Image" in detection:
                         cots_detection.image = detection["Image"]
                     else:
