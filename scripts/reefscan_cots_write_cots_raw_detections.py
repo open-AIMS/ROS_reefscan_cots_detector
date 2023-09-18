@@ -43,9 +43,9 @@ class ReefscanCotsWriteDetections:
         self.sub_reefscan_sequence_info = rospy.Subscriber(TOPIC_REEFSCAN_SEQUENCE_INFO, Reefscan_status, self.read_reefscan_status)
         self.sequence_name_for_filename = {}
 
+    # Function:     read_reefscan_status(self, msg)
+    # Description:  Save a record of Reefscan sequence_name for each image
     def read_reefscan_status(self, msg):
-        # rospy.loginfo("inserting a path %s" % msg)
-
         sequence_path = msg.sequence_path
         filename_string = msg.filename_string
         sequence_name = msg.sequence_name
@@ -54,6 +54,8 @@ class ReefscanCotsWriteDetections:
             # rospy.loginfo("inserting a path %s" % full_file_path)
             self.sequence_name_for_filename[full_file_path] = sequence_name
 
+    # Function:     write_cots_detection_message(self, msg)
+    # Description:  Receive detection message and retreive Reefscan sequence_name for the image
     def write_cots_detection_message(self, msg):
         filename = msg.header.frame_id
         if filename in self.sequence_name_for_filename:
@@ -62,6 +64,8 @@ class ReefscanCotsWriteDetections:
                 self.write_cots_detection(sequence_name, filename, msg)
             del self.sequence_name_for_filename[filename]
 
+    # Function:     write_cots_detection(self, sequence_name, filename, msg)
+    # Description:  write out JSON record of detection for particular image
     def write_cots_detection(self, sequence_name, filename, msg):
         sequence_name = self.sequence_name_for_filename[filename]
         image_name = os.path.splitext(os.path.basename(filename))[0]
