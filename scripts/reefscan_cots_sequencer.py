@@ -21,6 +21,7 @@ Description:
 import rospy
 import time
 import cv2
+import json
 from cv_bridge import CvBridge, CvBridgeError
 
 # Random is used to change the time between simulated detections
@@ -30,6 +31,7 @@ from ccip_msgs.msg import DetectionResult, Detection, SequencedDetection, FrameD
 from reefscan_cots_detector.msg import CotsSequence, CotsDetection, CotsMaximumScore
 from reefscan_image_utils import resize_for_preview
 from reefscan.msg import Reefscan_status
+from rospy_message_converter import message_converter
 include_images = True
 
 
@@ -39,6 +41,8 @@ TOPIC_REEFSCAN_COTS_DETECTED = '/detections'
 TOPIC_REEFSCAN_COTS_SEQUENCE = '/reefscan_cots_sequence'
 # Topic to read sequence_names from
 TOPIC_REEFSCAN_SEQUENCE_INFO = '/reefscan_status'
+
+PARAM_DATA_FOLDER = "/reefscan_data_folder"
 
 def compare_detection(old_detection, new_detection):
     if old_detection["detection_id"] != new_detection['detection_id'] or old_detection["left"] != new_detection['left'] or old_detection["top"] != new_detection['top'] or old_detection["width"] != new_detection['width'] or old_detection["height"] != new_detection['height'] or old_detection["scores"] != new_detection['scores']: 
@@ -77,7 +81,7 @@ class ReefscanCotsSequencer():
         sequence_name = msg.sequence_name
         full_file_path = sequence_path + "/" + filename_string
         if full_file_path not in self.sequence_name_for_filename:
-            rospy.loginfo("inserting a path %s" % full_file_path)
+            # rospy.loginfo("inserting a path %s" % full_file_path)
             self.sequence_name_for_filename[full_file_path] = sequence_name
 
     # Function:     _read_image(self, filename)
@@ -86,7 +90,7 @@ class ReefscanCotsSequencer():
     #               compressed to save bandwidth.
     def _read_image(self, filename):
         photo = cv2.imread(filename)
-        rospy.loginfo(filename + "`.")
+        # rospy.loginfo(filename + "`.")
         photo_preview = resize_for_preview(photo)
         photo_compressed_msg = self.cv_bridge.cv2_to_compressed_imgmsg(photo_preview)
         photo_compressed_msg.header.frame_id = filename
@@ -95,33 +99,33 @@ class ReefscanCotsSequencer():
     # Function:     restructure_cots_detected(self, data)
     # Description:  Callback that ROS invokes when an Image is received.  Triggers the COTS detection simulated event
     def restructure_cots_detected(self, data):
-        rospy.loginfo("restructure.")
+        #rospy.loginfo("restructure.")
         if self.updating == True:
             return
         self.updating = True
         #rospy.loginfo(data)
-        rospy.loginfo(data.header.frame_id)
+        #rospy.loginfo(data.header.frame_id)
         filename = data.header.frame_id
         if filename in self.sequence_name_for_filename:
             sequence_name = self.sequence_name_for_filename[filename]
         else:
             sequence_name = "20230204_060005_Seq01-Tern-RE011"
 
-        rospy.loginfo("restructure. frame id: %s" % filename)
+        #rospy.loginfo("restructure. frame id: %s" % filename)
 
         # Each result is a SequencedDetection
         for result in data.results:
             self.seen[str(result.sequence_id)] = time.time()
             if not str(result.sequence_id) in self.sequences:
                 #rospy.loginfo("Not in seuqnces")
-                rospy.loginfo("restructure. first time I have seen sequence id : %d" % result.sequence_id)
+                # rospy.loginfo("restructure. first time I have seen sequence id : %d" % result.sequence_id)
                 new_cots_sequence = {}
                 new_cots_sequence["sequence_length"] = result.sequence_length
                 new_cots_sequence["sequence_name"] = sequence_name
                 new_cots_sequence["size"] = result.size
                 new_detection = {}
 
-                rospy.loginfo("restructure. first time I have seen sequence id : %s: adding detection id %d " % (result.sequence_id, result.detection.detection_id))
+                # rospy.loginfo("restructure. first time I have seen sequence id : %s: adding detection id %d " % (result.sequence_id, result.detection.detection_id))
 
                 if include_images == True:
                     new_detection["Image"] = self._read_image(filename)
@@ -153,8 +157,8 @@ class ReefscanCotsSequencer():
                 self.sequences[str(result.sequence_id)] = new_cots_sequence
 
             else:
-                rospy.logdebug("Already in seen sequences")
-                rospy.loginfo("restructure. already seen sequence id : %d" % result.sequence_id)
+                # rospy.logdebug("Already in seen sequences")
+                #rospy.loginfo("restructure. already seen sequence id : %d" % result.sequence_id)
                 editing_cots_sequence = self.sequences[str(result.sequence_id)]
                 
                 # Process the scores first
@@ -168,7 +172,7 @@ class ReefscanCotsSequencer():
                         }
                     )
                     # If we have not recorded a maximum for the class id this score is the new maximum
-                    rospy.logdebug(str(self.max_scores))
+                    #rospy.logdebug(str(self.max_scores))
                     
                     if not str(detection_result.class_id) in self.max_scores[str(result.sequence_id)]:
                         self.max_scores[str(result.sequence_id)][str(detection_result.class_id)] = detection_result.score
@@ -177,9 +181,9 @@ class ReefscanCotsSequencer():
                     elif self.max_scores[str(result.sequence_id)][str(detection_result.class_id)] < detection_result.score:
                         self.max_scores[str(result.sequence_id)][str(detection_result.class_id)] = detection_result.score
 
-                rospy.logdebug(str(result.sequence_id))
-                rospy.logdebug(str(result.detection.detection_id))
-                rospy.loginfo("restructure. already seen sequence id : %d overwriting detection with id %d" % (result.sequence_id, result.detection.detection_id))
+                #rospy.logdebug(str(result.sequence_id))
+                #rospy.logdebug(str(result.detection.detection_id))
+                #rospy.loginfo("restructure. already seen sequence id : %d overwriting detection with id %d" % (result.sequence_id, result.detection.detection_id))
                 new_detection = {
                     "detection_id": result.detection.detection_id,
                     "left": result.detection.left_x,
@@ -205,7 +209,7 @@ class ReefscanCotsSequencer():
     def publish_status(self, data):
         delete = {}
         # Go through all the sequences and figure out
-        rospy.loginfo("PUBLISH")
+        #rospy.loginfo("PUBLISH")
         if self.updating == True:
             return
 
@@ -213,7 +217,7 @@ class ReefscanCotsSequencer():
 
         for sequence_id in self.seen:
             if self.seen[sequence_id] < time.time() - 1:
-                rospy.loginfo(sequence_id)
+                # rospy.loginfo(sequence_id)
                 sequence = self.sequences[sequence_id]
                 cots_sequence = CotsSequence()
                 cots_sequence.sequence_id = int(sequence_id)
@@ -227,20 +231,22 @@ class ReefscanCotsSequencer():
                     if "Image" in detection:
                         cots_detection.image = detection["Image"]
                     else:
-                        rospy.loginfo("image missing from cots_detection during publish. sequence id %d" % sequence_id)
-                        rospy.loginfo(str(cots_detection))
+                        # rospy.loginfo("image missing from cots_detection during publish. sequence id %d" % sequence_id)
+                        # rospy.loginfo(str(cots_detection))
+                        pass
                         
                     if "detection_id" in detection:
                         cots_detection.detection_id = detection["detection_id"]
                     else:
-                        rospy.loginfo("detection_id missing from cots_detection during publish")
-                        rospy.loginfo(str(cots_detection))
+                        # rospy.loginfo("detection_id missing from cots_detection during publish")
+                        # rospy.loginfo(str(cots_detection))
+                        pass
                     cots_detection.left = detection["left"]
                     cots_detection.top = detection["top"]
                     cots_detection.width = detection["width"]
                     cots_detection.height = detection["height"]
                     cots_detection.detection_results = []
-                    rospy.loginfo(cots_detection)
+                    # rospy.loginfo(cots_detection)
 
                     for score in detection['scores']:
                         d = DetectionResult()
@@ -265,8 +271,13 @@ class ReefscanCotsSequencer():
                 #rospy.loginfo(cots_sequence)
                 if include_images:
                     self.pub_reefscan_cots_sequence.publish(cots_sequence)
+                    cots_sequence_id = cots_sequence.sequence_id
+                    reefscan_sequence_name = cots_sequence.sequence_name
+                    self.write_cots_sequence(reefscan_sequence_name, cots_sequence_id, cots_sequence) 
+
                 else:
-                    rospy.loginfo(cots_sequence)
+                    #rospy.loginfo(cots_sequence)
+                    pass
 
 
                 # Record the sequences that we intend to send so they can be removed from our list of sequences we have seen
@@ -274,11 +285,29 @@ class ReefscanCotsSequencer():
 
         # Remove sequences that we just sent out.
         for sequence_id in delete:
-            rospy.loginfo("Deleting" + sequence_id)
+            # rospy.loginfo("Deleting" + sequence_id)
             del self.seen[sequence_id]
             del self.sequences[sequence_id]
 
         self.updating = False
+
+    def write_cots_sequence(self, sequence_name, sequence_id, cots_sequence):
+        msg_dict = message_converter.convert_ros_message_to_dictionary(cots_sequence)
+        for detection in msg_dict['detection']:
+            rospy.loginfo("Image is overrwritten")
+            detection['image']['data'] = None
+            
+        # writes the sequence metadata to file returns the sequence name and the friendly name
+        data_folder = rospy.get_param(PARAM_DATA_FOLDER)
+        if data_folder:
+            msg_json = json.dumps(msg_dict)
+            json_file = "%s/%s/cots_sequence_detection_%06d.json" % (data_folder, sequence_name, sequence_id)
+
+            with open(json_file, "w") as myfile:
+                myfile.write(msg_json)
+        else:
+            rospy.loginfo("Not writing cots sequence because reefscan data folder location is unknown")
+
 
 if __name__ == '__main__':
     # Initialise node with rospy
