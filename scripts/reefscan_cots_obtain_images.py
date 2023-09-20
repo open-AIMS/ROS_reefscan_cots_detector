@@ -24,7 +24,9 @@ This message type is sensor_msgs/Image
 
 
 import rospy
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, CompressedImage
+import cv2
+from cv_bridge import CvBridge, CvBridgeError
 
 TOPIC_REEFSCAN_PREVIEW = "/reefscan_preview"
 TOPIC_COTS_DETECTOR = "/test_frames"
@@ -33,14 +35,17 @@ TOPIC_COTS_DETECTOR = "/test_frames"
 class ReefscanCotsObtainImages(object):
 
     def __init__(self):
-        self.sub_reefscan_preview_images = rospy.Subscriber(TOPIC_REEFSCAN_PREVIEW, Image, self.subscriber_reefscan_cots_aquire_image)
+        self.sub_reefscan_preview_images = rospy.Subscriber(TOPIC_REEFSCAN_PREVIEW, CompressedImage, self.subscriber_reefscan_cots_aquire_image)
         self.pub_reefscan_cots_detector = rospy.Publisher(TOPIC_COTS_DETECTOR, Image, queue_size=1)
 
     def subscriber_reefscan_cots_aquire_image(self, msg):
         # If there is a filename (ie reefscan is recording, send image for 
         # classification
         if msg.header.frame_id:
-            self.pub_reefscan_cots_detector.publish(msg)
+            self.cv_image_preview = self.cv_bridge.compressed_imgmsg_to_cv2(msg, "bgr8")
+            new_image = self.cv_bridge.cv2_to_imgmsg(self.cv_image_preview, encoding="bgr8")
+
+            self.pub_reefscan_cots_detector.publish(new_image)
 
 
 
