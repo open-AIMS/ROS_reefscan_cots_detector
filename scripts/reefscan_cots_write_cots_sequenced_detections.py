@@ -26,10 +26,10 @@ from refscan_utils import write_csv_row, read_all_from_csv, get_ten_photos_aroun
 
 # Topic to subscribe to COTS detection information
 TOPIC_REEFSCAN_COTS_SEQUENCE = '/reefscan_cots_sequence'
-
+# reefscan_cots_write_cots_sequenced_detections.py}
 PARAM_DATA_FOLDER = "/reefscan_data_folder"
 
-class ReefscanCotsDetectionRecorder(object):
+class ReefscanCotsSequencedDetectionRecorder(object):
     # Function:     __init(self)
     # Description:  Initialise counters and create ROS publisher and scubscriber objects
     def __init__(self):
@@ -83,7 +83,7 @@ if __name__ == '__main__':
     rospy.init_node('reefscan_cots_detection_recorder_class', anonymous=True)
 
     # Construct the ReefscanCotsDetectionRecorder that records COTS detection
-    reefscan_cots_detection_recorder = ReefscanCotsDetectionRecorder()
+    reefscan_cots_sequenced_detection_recorder = ReefscanCotsSequencedDetectionRecorder()
 
     # Go into the spin() loop so rospy can
     try:
