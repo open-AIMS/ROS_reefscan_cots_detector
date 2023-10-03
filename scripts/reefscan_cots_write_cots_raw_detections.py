@@ -23,7 +23,7 @@ import os.path
 import rospy
 import json
 # ccip_msgs is a module which contains the messages that are sent when COTS is detected
-from ccip_msgs.msg import DetectionResult, Detection, SequencedDetection, FrameDetections, SequenceSummary, DetectionSummary
+from ccip_msgs.msg import DetectionResult, Detection, SequencedDetection, FrameDetections
 from reefscan.msg import Reefscan_status
 from rospy_message_converter import message_converter
 

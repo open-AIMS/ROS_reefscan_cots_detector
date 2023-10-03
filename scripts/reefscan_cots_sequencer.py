@@ -27,7 +27,7 @@ from cv_bridge import CvBridge, CvBridgeError
 # Random is used to change the time between simulated detections
 import random
 # ccip_msgs is a module which contains the messages that are sent when COTS is detected
-from ccip_msgs.msg import DetectionResult, Detection, SequencedDetection, FrameDetections, SequenceSummary, DetectionSummary
+from ccip_msgs.msg import DetectionResult, Detection, SequencedDetection, FrameDetections
 from reefscan_cots_detector.msg import CotsSequence, CotsDetection, CotsMaximumScore
 from reefscan_image_utils import resize_for_preview
 from reefscan.msg import Reefscan_status
