@@ -8,7 +8,7 @@ Description:
 
     It is comprised of:
 
-    reefscan_cots_detection_record	This is a node to write out cots detections as json to disk
+    reefscan_cots_detection_recorder	This is a node to write out cots detections as json to disk
 
 """
 
@@ -35,7 +35,7 @@ class ReefscanCotsDetectionRecorder(object):
     def __init__(self):
         rospy.loginfo("initing")
         # Subscribe to topic for new images
-        self.sub_reefscan_preview = rospy.Subscriber(TOPIC_REEFSCAN_COTS_SEQUENCE, CotsSequence,  self.write_cots_detection_information)
+        self.sub_reefscan_cots_sequence = rospy.Subscriber(TOPIC_REEFSCAN_COTS_SEQUENCE, CotsSequence,  self.write_cots_detection_information)
         self.data_folder, self.error_flag, self.error_message = get_destination_folder()
 
     

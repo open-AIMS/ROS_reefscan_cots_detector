@@ -34,7 +34,7 @@ class ReefscanCotsConfirmedClass(object):
     def __init__(self):
         rospy.loginfo("initing")
         # Subscribe to topic for new images
-        self.sub_reefscan_preview = rospy.Subscriber(TOPIC_REEFSCAN_COTS_CONFIRMATIONS, CotsConfirmedClass,  self.write_cots_class_confirmation)
+        self.sub_reefscan_cots_confirmations = rospy.Subscriber(TOPIC_REEFSCAN_COTS_CONFIRMATIONS, CotsConfirmedClass,  self.write_cots_class_confirmation)
         self.data_folder, self.error_flag, self.error_message = get_destination_folder()
 
     
