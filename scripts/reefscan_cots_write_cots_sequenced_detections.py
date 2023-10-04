@@ -43,40 +43,24 @@ class ReefscanCotsSequencedDetectionRecorder(object):
     # Description:  Receive cots detection information and write out to the disk
     def write_cots_detection_information(self, msg):
         rospy.loginfo("Writing")
-        msg_dict = message_converter.convert_ros_message_to_dictionary(msg)
-        rospy.loginfo(str(msg_dict.keys()))
-        sequence_name = msg_dict["sequence_name"]
-        self.write_cots_detection(self.data_folder, msg_dict)
-        
-    # Function:     read_data_folder
-    # Description:  read the parameter from confirmation that tells us where the data should be stored
-    #               copied from reefscan_marks.py
-    def read_data_folder(self):
-        if self.data_folder == "":
-            self.data_folder = rospy.get_param(PARAM_DATA_FOLDER)
-
-        return self.data_folder
-
-
-    # Function:     write_json(msg_dict)
-    # Description:  write one row to a CSV file
-    #               copied from refscan_utils.py
-    # 
-    # msg_dict is a dictionary which contains the data to be written
-    # writes the sequence metadata to file returns the sequence name and the friendly name
-    def write_cots_detection(self, data_folder, msg_dict):
-        sequence_name = ""
-        if "sequence_name" in msg_dict:
-            sequence_name = msg_dict["sequence_name"]
-            sequence_id = msg_dict["sequence_id"]
+        cots_sequence_id = cots_sequence.sequence_id
+        reefscan_sequence_name = cots_sequence.sequence_name
+        msg_dict = message_converter.convert_ros_message_to_dictionary(cots_sequence)
+        for detection in msg_dict['detection']:
+            rospy.loginfo("Image is overwritten")
+            detection['image']['data'] = None
+            
+        # writes the sequence metadata to file returns the sequence name and the friendly name
+        data_folder = rospy.get_param(PARAM_DATA_FOLDER)
+        if data_folder:
             msg_json = json.dumps(msg_dict)
-            json_file = data_folder + "/" + sequence_name + "/detection_" + str(sequence_id) + ".json"
+            json_file = "%s/%s/cots_sequence_detection_%06d.json" % (data_folder, sequence_name, sequence_id)
 
             with open(json_file, "w") as myfile:
                 myfile.write(msg_json)
-        return sequence_name
+        else:
+            rospy.loginfo("Not writing cots sequence because reefscan data folder location is unknown")
 
-    
 
 if __name__ == '__main__':
     # Initialise node with rospy

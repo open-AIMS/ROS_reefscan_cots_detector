@@ -271,10 +271,6 @@ class ReefscanCotsSequencer():
                 #rospy.loginfo(cots_sequence)
                 if include_images:
                     self.pub_reefscan_cots_sequence.publish(cots_sequence)
-                    cots_sequence_id = cots_sequence.sequence_id
-                    reefscan_sequence_name = cots_sequence.sequence_name
-                    self.write_cots_sequence(reefscan_sequence_name, cots_sequence_id, cots_sequence) 
-
                 else:
                     #rospy.loginfo(cots_sequence)
                     pass
@@ -290,24 +286,6 @@ class ReefscanCotsSequencer():
             del self.sequences[sequence_id]
 
         self.updating = False
-
-    def write_cots_sequence(self, sequence_name, sequence_id, cots_sequence):
-        msg_dict = message_converter.convert_ros_message_to_dictionary(cots_sequence)
-        for detection in msg_dict['detection']:
-            rospy.loginfo("Image is overrwritten")
-            detection['image']['data'] = None
-            
-        # writes the sequence metadata to file returns the sequence name and the friendly name
-        data_folder = rospy.get_param(PARAM_DATA_FOLDER)
-        if data_folder:
-            msg_json = json.dumps(msg_dict)
-            json_file = "%s/%s/cots_sequence_detection_%06d.json" % (data_folder, sequence_name, sequence_id)
-
-            with open(json_file, "w") as myfile:
-                myfile.write(msg_json)
-        else:
-            rospy.loginfo("Not writing cots sequence because reefscan data folder location is unknown")
-
 
 if __name__ == '__main__':
     # Initialise node with rospy
