@@ -48,43 +48,33 @@ class ReefscanCotsDetectorSimulated(object):
     # Function:     detect_cots_callback(self, data)
     # Description:  Callback that ROS invokes when an Image is received.  Triggers the COTS detection simulated event
     def detect_cots_callback(self, data):
-
         # Create a DetectionResult messages with random data
         new_detection_result = DetectionResult()
-        new_detection_result.class_id = 1
-        new_detection_result.score = 0.33333
+        new_detection_result.class_id = 0
+        new_detection_result.score = 0.790382027626
 
-        new_detection_result2 = DetectionResult()
-        new_detection_result2.class_id = 2
-        new_detection_result2.score = 0.66666
 
         # Create a Detection with random data that includes the 
         # DetectionResult message
         new_detection = Detection()
-        new_detection.detection_id = 123
-        new_detection.detection_results = [new_detection_result, new_detection_result2]
-        new_detection.left_x = 123
-        new_detection.top_y = 123
-        new_detection.width = 123
-        new_detection.height = 123
+        new_detection.detection_id = 0
+        new_detection.detection_results = [new_detection_result]
+        new_detection.left_x = 0.626772244771
+        new_detection.top_y = 0.249190886815
+        new_detection.width = 0.0484656833467
+        new_detection.height = 0.0805773933729
 
         # Create two SequencedDetection's with random data that includes the 
         # Detection message
         new_sequenced_detection = SequencedDetection()
-        new_sequenced_detection.sequence_id = 123
-        new_sequenced_detection.sequence_length = 1234567890
-        new_sequenced_detection.sequence_length = 7890
+        new_sequenced_detection.sequence_id = 7
+        new_sequenced_detection.sequence_length = 3
         new_sequenced_detection.detection = new_detection
-
-        new_sequenced_detection2 = SequencedDetection()
-        new_sequenced_detection2.sequence_id = 255
-        new_sequenced_detection2.sequence_length = 987654310
-        new_sequenced_detection2.sequence_length = 7890
-        new_sequenced_detection2.detection = new_detection
 
 
         # Increment the counter for each image 
         self.counter = self.counter + 1
+        rospy.loginfo("Simulated COTS detection. %d %d" % (self.counter, self.cots_image_number))
         # When we receive enough images (ie enough time has passed simulate COTS detection
         if self.counter > self.cots_image_number:
             rospy.loginfo("Simulated COTS detection.")
@@ -96,10 +86,13 @@ class ReefscanCotsDetectorSimulated(object):
             # Construct the FrameDetections message that contains SequencedDetections
             thing = FrameDetections()
             thing.header = data.header
-            thing.results = [new_sequenced_detection, new_sequenced_detection2]
+            thing.header.frame_id = "/testset/1080p/20210909_223125_000_0752.jpg"
+            #thing.results = [new_sequenced_detection, new_sequenced_detection2]
+            thing.results = [new_sequenced_detection]
 
 
             # Send the FrameDetection message
+            rospy.loginfo(str(thing))
             self.pub_reefscan_cots_detected.publish(thing)
 
     
@@ -107,6 +100,7 @@ class ReefscanCotsDetectorSimulated(object):
 if __name__ == '__main__':
     # Initialise node with rospy
     rospy.init_node('reefscan_cots_detector_simulated', anonymous=True)
+    rospy.loginfo("Simulated COTS detection node starting.")
 
     # Construct the ReefscanCotsDetectorSimulated that simulates COTS detection
     reefscan_cots_detector_simulated = ReefscanCotsDetectorSimulated()

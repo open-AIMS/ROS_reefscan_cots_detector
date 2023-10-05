@@ -1,0 +1,7 @@
+<launch>
+  <node pkg="reefscan_cots_detector" type="reefscan_cots_obtain_images.py" name="reefscan_cots_obtain_images"/>
+  <node pkg="reefscan_cots_detector" type="reefscan_cots_confirmed_class.py" name="reefscan_cots_confirmed_class"/>
+  <node pkg="reefscan_cots_detector" type="reefscan_cots_sequencer.py" name="reefscan_cots_sequencer"/>
+  <node pkg="reefscan_cots_detector" type="reefscan_cots_write_cots_raw_detections.py" name="reefscan_cots_write_cots_raw_detections"/>
+  <node pkg="reefscan_cots_detector" type="reefscan_cots_write_cots_sequenced_detections.py" name="reefscan_cots_write_cots_sequenced_detections"/>
+</launch>

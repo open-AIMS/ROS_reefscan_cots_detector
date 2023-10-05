@@ -1,0 +1,4 @@
+<launch>
+  <include file="$(find reefscan)/launch/reefscan_deep.launch" />
+  <include file="$(find reefscan_cots_detector)/launch/reefscan_cots_detector_system.launch" />
+</launch>
