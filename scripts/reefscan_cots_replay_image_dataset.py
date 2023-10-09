@@ -79,7 +79,7 @@ class ImageInfo(object):
         self.sequence_name = sequence_name
         self.sequence_path = sequence_path
 
-class ReefscanFakeStatusClass(object):
+class ReefscanImageReplayClass(object):
     def __init__(self):
         self.cv_bridge = CvBridge()
         self.counter = 0
@@ -237,7 +237,7 @@ if __name__ == "__main__":
     load_images()
 
     # Initialise new class object from reefscan_acquire_class()
-    reefscan = ReefscanFakeStatusClass()
+    reefscan = ReefscanImageReplayClass()
     print("ReefScan Class Initialised")
     # Start Reefscan Publisher Timer - with callback function (Set for 5 Hz - 2.0/10.0 )
     rospy.Timer(rospy.Duration(2.0 / 100.0), reefscan.publish_status)
