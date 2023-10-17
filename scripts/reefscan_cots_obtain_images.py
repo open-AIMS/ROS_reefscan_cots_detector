@@ -35,13 +35,20 @@ class ReefscanCotsObtainImages(object):
 
 
     def subscriber_reefscan_cots_aquire_image(self, msg):
-        if msg.header.frame_id:
+        if msg.header.frame_id and msg.header.stamp.secs > 0:
             filename = msg.header.frame_id
+            # Decompress the image message to an array
             self.cv_image_preview = self.cv_bridge.compressed_imgmsg_to_cv2(msg, "bgr8")
+            # Construct new message
             new_image_msg = self.cv_bridge.cv2_to_imgmsg(self.cv_image_preview, encoding="bgr8")
+            # The full path to the filename is used as frame_id
+            # This is important for the sequencer node to load the image for the tablet app
             new_image_msg.header.frame_id = filename
+            # Copy timestamp to new message.
+            # Timestamps are very important for COTS detection.
+            new_image_msg.header.stamp.secs = msg.header.stamp.secs
+            new_image_msg.header.stamp.nsecs = msg.header.stamp.nsecs
             self.pub_reefscan_cots_detector.publish(new_image_msg)
-
 
 
 if __name__ == "__main__":
