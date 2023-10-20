@@ -11,8 +11,7 @@ Description:
     reefscan_cots_detection_recorder	This is a node to write out cots detections as json to disk
 
 """
-
-
+import os
 
 import rospy
 import json
@@ -25,6 +24,8 @@ from refscan_utils import write_csv_row, read_all_from_csv, get_ten_photos_aroun
 
 
 # Topic to subscribe to COTS detection information
+from sequence_writer_helper import get_filename_to_write, get_json_for_file_write
+
 TOPIC_REEFSCAN_COTS_SEQUENCE = '/reefscan_cots_sequence'
 # reefscan_cots_write_cots_sequenced_detections.py}
 PARAM_DATA_FOLDER = "/reefscan_data_folder"
@@ -41,25 +42,17 @@ class ReefscanCotsSequencedDetectionRecorder(object):
     
     # Function:     write_cots_detection_information(self, data)
     # Description:  Receive cots detection information and write out to the disk
-    def write_cots_detection_information(self, msg):
+    def write_cots_detection_information(self, cots_sequence):
         rospy.loginfo("Writing")
-        cots_sequence_id = cots_sequence.sequence_id
-        reefscan_sequence_name = cots_sequence.sequence_name
-        msg_dict = message_converter.convert_ros_message_to_dictionary(cots_sequence)
-        for detection in msg_dict['detection']:
-            rospy.loginfo("Image is overwritten")
-            detection['image']['data'] = None
-            
-        # writes the sequence metadata to file returns the sequence name and the friendly name
-        data_folder = rospy.get_param(PARAM_DATA_FOLDER)
-        if data_folder:
-            msg_json = json.dumps(msg_dict)
-            json_file = "%s/%s/cots_sequence_detection_%06d.json" % (data_folder, sequence_name, sequence_id)
 
-            with open(json_file, "w") as myfile:
-                myfile.write(msg_json)
-        else:
-            rospy.loginfo("Not writing cots sequence because reefscan data folder location is unknown")
+        json_file = get_filename_to_write(cots_sequence)
+
+        msg_dict = message_converter.convert_ros_message_to_dictionary(cots_sequence)
+        msg_json = get_json_for_file_write(msg_dict)
+
+        with open(json_file, "w") as myfile:
+            myfile.write(msg_json)
+
 
 
 if __name__ == '__main__':

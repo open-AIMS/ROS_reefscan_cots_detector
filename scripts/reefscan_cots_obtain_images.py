@@ -35,7 +35,7 @@ class ReefscanCotsObtainImages(object):
 
 
     def subscriber_reefscan_cots_aquire_image(self, msg):
-        if msg.header.frame_id and msg.header.stamp.secs > 0:
+        if msg.header.frame_id:
             filename = msg.header.frame_id
             # Decompress the image message to an array
             self.cv_image_preview = self.cv_bridge.compressed_imgmsg_to_cv2(msg, "bgr8")
@@ -46,8 +46,14 @@ class ReefscanCotsObtainImages(object):
             new_image_msg.header.frame_id = filename
             # Copy timestamp to new message.
             # Timestamps are very important for COTS detection.
-            new_image_msg.header.stamp.secs = msg.header.stamp.secs
-            new_image_msg.header.stamp.nsecs = msg.header.stamp.nsecs
+            if msg.header.stamp.secs > 0:
+                new_image_msg.header.stamp.secs = msg.header.stamp.secs
+                new_image_msg.header.stamp.nsecs = msg.header.stamp.nsecs
+            else:
+                now = rospy.get_rostime()
+                new_image_msg.header.stamp.secs = now.secs
+                new_image_msg.header.stamp.nsecs = now.nsecs
+
             self.pub_reefscan_cots_detector.publish(new_image_msg)
 
 
