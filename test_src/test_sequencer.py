@@ -26,11 +26,12 @@ def publish_sequence(sequence: CotsSequence):
 
 if __name__ == '__main__':
     helper = SequencerHelper(_read_image=_read_image, publish_sequence=publish_sequence)
-    dir = "E:/reefscan/20210726_153637_Seq01/"
+    dir = "D:/reefscan_backup/2023-10-24/20231024_044256_Seq01-Banfield North-Banfield North (Almost entire perimeter)"
     files = os.listdir(dir)
     files = sorted(files)
     for file in files:
-        if file.endswith(".json"):
+        if file.endswith(".jpg.json"):
+            print(file)
             frame_detection = read_detection_file(f"{dir}/{file}")
             helper.restructure_cots_detected(frame_detection)
             helper.publish_sequences(None)

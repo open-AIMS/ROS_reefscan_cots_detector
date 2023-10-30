@@ -11,8 +11,7 @@ Description:
     reefscan_cots_confirmed_class       A module to record the confirmed 
                                         class for machine learning detections 
 """
-
-
+import os
 
 import rospy
 from rospy_message_converter import message_converter
@@ -43,8 +42,8 @@ class ReefscanCotsConfirmedClass(object):
     def write_cots_class_confirmation(self, msg):
         rospy.loginfo("Writing")
         msg_dict = message_converter.convert_ros_message_to_dictionary(msg)
-        sequence_name = msg_dict["sequence_name"]
-        folder_sequence = self.read_data_folder() + "/" + sequence_name
+        filename = msg_dict["filename"]
+        folder_sequence = os.path.dirname(filename)
         rospy.loginfo(folder_sequence)
         write_csv_row(folder_sequence, "cots_class_confirmations.csv", msg_dict)
         
