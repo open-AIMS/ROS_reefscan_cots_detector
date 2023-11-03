@@ -59,9 +59,12 @@ class ReefscanCotsWriteDetections:
     def write_cots_detection_message(self, msg):
         filename = msg.header.frame_id
         if filename in self.sequence_name_for_filename:
-            if msg.results:
-                sequence_name = self.sequence_name_for_filename[filename]
-                self.write_cots_detection(sequence_name, filename, msg)
+            sequence_name = self.sequence_name_for_filename[filename]
+            if len(msg.results):
+                self.write_cots_detection(sequence_name, os.path.splitext(filename)[0], msg)
+            else:
+                self.write_cots_detection(sequence_name, os.path.splitext(filename)[0] + "_no_detections", msg)
+
             del self.sequence_name_for_filename[filename]
 
     # Function:     write_cots_detection(self, sequence_name, filename, msg)
