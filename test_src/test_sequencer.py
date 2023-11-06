@@ -26,7 +26,7 @@ def publish_sequence(sequence: CotsSequence):
 
 if __name__ == '__main__':
     helper = SequencerHelper(_read_image=_read_image, publish_sequence=publish_sequence)
-    dir = "D:/reefscan_backup/2023-10-24/20231024_044256_Seq01-Banfield North-Banfield North (Almost entire perimeter)"
+    dir = "D:/reefscan/2023-10-24/20231024_044256_Seq01-Banfield North-Banfield North (Almost entire perimeter)"
     files = os.listdir(dir)
     files = sorted(files)
     for file in files:

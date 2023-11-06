@@ -1,0 +1,8 @@
+<launch>
+  <arg name="use_tls" default="false" />
+  <node name="mqtt_bridge_cots" pkg="mqtt_bridge" type="mqtt_bridge_node.py" output="screen">
+    <rosparam command="delete" param="" />
+    <rosparam command="load" file="$(find reefscan_cots_detector)/mqtt_bridge_config/reefscan_cots_params.yaml" />
+    <rosparam if="$(arg use_tls)" command="load" ns="mqtt" file="$(find mqtt_bridge)/config/tls_params.yaml" />
+  </node>
+</launch>
