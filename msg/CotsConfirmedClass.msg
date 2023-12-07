@@ -1,5 +1,5 @@
 int64 sequence_id
-string sequence_name
+string filename
 int64 class_id
 string class_name
 

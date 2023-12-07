@@ -1,0 +1,23 @@
+mqtt:
+  client:
+    protocol: 4      # MQTTv311
+  connection:
+    host: localhost
+    port: 1883
+    keepalive: 60
+  private_path: device/001
+serializer: json:dumps
+deserializer: json:loads
+bridge:
+  - factory: mqtt_bridge.bridge:RosToMqttBridge
+    msg_type: reefscan_cots_detector.msg:CotsSequence
+    topic_from: /reefscan_cots_sequence
+    topic_to: reefscan_cots_sequence_read
+  - factory: mqtt_bridge.bridge:MqttToRosBridge
+    msg_type: reefscan_cots_detector.msg:CotsConfirmedClass
+    topic_from: reefscan_cots_sequence_confirmed_write
+    topic_to: /reefscan_cots_sequence_confirmed
+  - factory: mqtt_bridge.bridge:RosToMqttBridge
+    msg_type: ccip_msgs.msg:FrameDetections
+    topic_from: /detections
+    topic_to: detections_read
