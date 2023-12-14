@@ -45,18 +45,13 @@ class ReefscanCotsWriteDetections:
     # Description:  Receive detection message and write out JSON record of detection
     def write_cots_detection_message(self, msg):
         filename = msg.header.frame_id
-        if filename in self.sequence_name_for_filename:
-            sequence_name = self.sequence_name_for_filename[filename]
-            if len(msg.results):
-                self.write_cots_detection(sequence_name, os.path.splitext(filename)[0], msg)
-            else:
-                self.write_cots_detection(sequence_name, os.path.splitext(filename)[0] + "_no_detections", msg)
-
-            del self.sequence_name_for_filename[filename]
+        if len(msg.results):
+            json_file = filename + ".json"
+        else:
+            json_file = filename + ".json_no_detections"
 
         msg_dict = message_converter.convert_ros_message_to_dictionary(msg)
         msg_json = json.dumps(msg_dict)
-        json_file = filename + ".json"
 
         with open(json_file, "w") as myfile:
             myfile.write(msg_json)
