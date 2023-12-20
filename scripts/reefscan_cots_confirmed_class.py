@@ -44,8 +44,11 @@ class ReefscanCotsConfirmedClass(object):
         msg_dict = message_converter.convert_ros_message_to_dictionary(msg)
         filename = msg_dict["filename"]
         folder_sequence = os.path.dirname(filename)
-        rospy.loginfo(folder_sequence)
-        write_csv_row(folder_sequence, "cots_class_confirmations.csv", msg_dict)
+        reefscan_sequence = os.path.basename(folder_sequence)
+        csv_msg = {"reefscan_sequence": reefscan_sequence,
+                   "detection_sequence": msg_dict["sequence_id"],
+                   "confirmed": msg_dict["confirmed"]}
+        write_csv_row(folder_sequence, "cots_class_confirmations.csv", csv_msg)
         
     # Function:     read_data_folder
     # Description:  read the parameter from confirmation that tells us where the data should be stored
