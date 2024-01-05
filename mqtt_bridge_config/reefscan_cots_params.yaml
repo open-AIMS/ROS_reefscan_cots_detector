@@ -19,5 +19,5 @@ bridge:
     topic_to: /reefscan_cots_sequence_confirmed
   - factory: mqtt_bridge.bridge:RosToMqttBridge
     msg_type: ccip_msgs.msg:FrameDetections
-    topic_from: /detections
+    topic_from: /detections_filtered
     topic_to: detections_read
