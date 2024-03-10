@@ -31,8 +31,14 @@ class SequencerHelper():
         self.updating = True
         # rospy.loginfo(data)
         # rospy.loginfo(data.header.frame_id)
-        filename = frame_detection.header.frame_id
-        time_stamp = self.stamp_to_float(frame_detection.header.stamp)
+        filename = frame_detection.original_image_message.original_image.header.frame_id
+        image = frame_detection.original_image_message.original_image
+        latitude = frame_detection.original_image_message.geolocation.latitude
+        longitude = frame_detection.original_image_message.geolocation.longitude
+        reefscan_sequence_id = frame_detection.original_image_message.reefscan_sequence_id 
+
+
+        time_stamp = self.stamp_to_float(frame_detection.original_image_message.original_image.header.stamp)
         self.last_time = time_stamp
 
         # rospy.loginfo("restructure. frame id: %s" % filename)
@@ -52,7 +58,7 @@ class SequencerHelper():
                 # rospy.loginfo("restructure. first time I have seen sequence id : %s: adding detection id %d " % (result.sequence_id, result.detection.detection_id))
 
                 if include_images == True:
-                    new_detection["Image"] = self._read_image(filename)
+                    new_detection["Image"] = image
                 else:
                     new_detection["Image"] = ""
 
@@ -61,6 +67,10 @@ class SequencerHelper():
                 new_detection["top"] = sequenced_detection.detection.top_y
                 new_detection["width"] = sequenced_detection.detection.width
                 new_detection["height"] = sequenced_detection.detection.height
+                new_detection["latitude"] = latitude
+                new_detection["longitude"] = longitude
+                new_detection["reefscan_sequence_name"] = reefscan_sequence_id
+
                 new_detection["scores"] = []
                 self.max_scores[str(sequenced_detection.sequence_id)] = {}
                 # rospy.loginfo(self.sequences)
@@ -124,9 +134,12 @@ class SequencerHelper():
                 }
 
                 if include_images == True:
-                    new_detection["Image"] = self._read_image(filename)
+                    new_detection["Image"] = image
                 else:
                     new_detection["Image"] = ""
+                new_detection["latitude"] = latitude
+                new_detection["longitude"] = longitude
+                new_detection["reefscan_sequence_name"] = reefscan_sequence_id
 
                 editing_cots_sequence["detection"].append(new_detection)
                 # print(self.sequences)
@@ -169,6 +182,9 @@ class SequencerHelper():
                         # rospy.loginfo(str(cots_detection))
                         pass
                     cots_detection.filename = detection["filename"]
+                    cots_detection.reefscan_sequence_name = detection["reefscan_sequence_name"]
+                    cots_detection.latitude = detection["latitude"]
+                    cots_detection.longitude = detection["longitude"]
                     cots_detection.left = detection["left"]
                     cots_detection.top = detection["top"]
                     cots_detection.width = detection["width"]

@@ -26,7 +26,7 @@ import json
 from ccip_msgs.msg import DetectionResult, Detection, SequencedDetection, FrameDetections
 from rospy_message_converter import message_converter
 
-# Topic to subscribe to 
+# Topic to subscribe to
 TOPIC_REEFSCAN_COTS_DETECTED = '/detections'
 
 PARAM_DATA_FOLDER = "/reefscan_data_folder"
@@ -44,7 +44,7 @@ class ReefscanCotsWriteDetections:
     # Function:     write_cots_detection_message(self, msg)
     # Description:  Receive detection message and write out JSON record of detection
     def write_cots_detection_message(self, msg):
-        filename = msg.header.frame_id
+        filename = msg.original_image_message.original_image.header.frame_id
         if len(msg.results):
             json_file = filename + ".json"
         else:

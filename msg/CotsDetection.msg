@@ -1,5 +1,8 @@
-sensor_msgs/CompressedImage image
+sensor_msgs/Image image
 string filename
+string reefscan_sequence_name
+float64 latitude
+float64 longitude
 int64 detection_id
 ccip_msgs/DetectionResult[] detection_results
 float64 left

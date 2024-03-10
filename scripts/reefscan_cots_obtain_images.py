@@ -16,13 +16,17 @@
 # This message type is sensor_msgs/Image
 
 import rospy
-from sensor_msgs.msg import Image, CompressedImage
+from sensor_msgs.msg import Image, CompressedImage, NavSatFix
+from ccip_msgs.msg import Image as CcipImage
+from reefscan.msg import Reefscan_status
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
 
 
 TOPIC_REEFSCAN_PREVIEW = "/reefscan_preview"
-TOPIC_COTS_DETECTOR = "/test_frames"
+TOPIC_REEFSCAN_STATUS = "/reefscan_status"
+TOPIC_GPS_FIX = "/fix"
+TOPIC_COTS_DETECTOR = "/ccip_images"
 PARAM_DATA_FOLDER = "/reefscan_data_folder"
 
 
@@ -30,9 +34,18 @@ class ReefscanCotsObtainImages(object):
 
     def __init__(self):
         self.sub_reefscan_preview_images = rospy.Subscriber(TOPIC_REEFSCAN_PREVIEW, CompressedImage, self.subscriber_reefscan_cots_aquire_image)
-        self.pub_reefscan_cots_detector = rospy.Publisher(TOPIC_COTS_DETECTOR, Image, queue_size=1)
+        self.sub_gps_fix = rospy.Subscriber(TOPIC_GPS_FIX, NavSatFix, self.subscriber_acquire_gps_fix)
+        self.sub_reefscan_status = rospy.Subscriber(TOPIC_REEFSCAN_STATUS, Reefscan_status, self.subscriber_acquire_reefscan_status)
+        self.pub_reefscan_cots_detector = rospy.Publisher(TOPIC_COTS_DETECTOR, CcipImage, queue_size=1)
         self.cv_bridge = CvBridge()
+        self.gps_fix = None
+        self.reefscan_sequence_id = ""
 
+    def subscriber_acquire_gps_fix(self, msg):
+        self.gps_fix = msg
+
+    def subscriber_acquire_reefscan_status(self, msg):
+        self.reefscan_sequence_id = msg.sequence_name
 
     def subscriber_reefscan_cots_aquire_image(self, msg):
         if msg.header.frame_id:
@@ -40,21 +53,29 @@ class ReefscanCotsObtainImages(object):
             # Decompress the image message to an array
             self.cv_image_preview = self.cv_bridge.compressed_imgmsg_to_cv2(msg, "bgr8")
             # Construct new message
-            new_image_msg = self.cv_bridge.cv2_to_imgmsg(self.cv_image_preview, encoding="bgr8")
+            new_image = self.cv_bridge.cv2_to_imgmsg(self.cv_image_preview, encoding="bgr8")
             # The full path to the filename is used as frame_id
             # This is important for the sequencer node to load the image for the tablet app
-            new_image_msg.header.frame_id = filename
+            new_image.header.frame_id = filename
             # Copy timestamp to new message.
             # Timestamps are very important for COTS detection.
             if msg.header.stamp.secs > 0:
-                new_image_msg.header.stamp.secs = msg.header.stamp.secs
-                new_image_msg.header.stamp.nsecs = msg.header.stamp.nsecs
+                new_image.header.stamp.secs = msg.header.stamp.secs
+                new_image.header.stamp.nsecs = msg.header.stamp.nsecs
             else:
                 now = rospy.get_rostime()
-                new_image_msg.header.stamp.secs = now.secs
-                new_image_msg.header.stamp.nsecs = now.nsecs
+                new_image.header.stamp.secs = now.secs
+                new_image.header.stamp.nsecs = now.nsecs
+            rospy.loginfo(type(new_image))
+            new_msg = CcipImage()
+            new_msg.original_image = new_image
+            new_msg.geolocation = self.gps_fix
+            new_msg.reefscan_sequence_id = self.reefscan_sequence_id
 
-            self.pub_reefscan_cots_detector.publish(new_image_msg)
+            self.pub_reefscan_cots_detector.publish(new_msg)
+
+
+
 
 
 if __name__ == "__main__":
@@ -64,7 +85,9 @@ if __name__ == "__main__":
     # Initialise new class object from reefscan_acquire_class()
     reefscan = ReefscanCotsObtainImages()
     print("ReefScan Class Initialised")
-    rospy.loginfo("Images will aquired from the topic %s", TOPIC_REEFSCAN_PREVIEW)
+    rospy.loginfo("Images will acquired from the topic %s", TOPIC_REEFSCAN_PREVIEW)
+    rospy.loginfo("GPS info will acquired from the topic %s", TOPIC_GPS_FIX)
+    rospy.loginfo("Reefscan Status info will acquired from the topic %s", TOPIC_REEFSCAN_STATUS)
     rospy.loginfo("Images will be published to the topic %s for COTS detection" % TOPIC_COTS_DETECTOR)
 
     try:
