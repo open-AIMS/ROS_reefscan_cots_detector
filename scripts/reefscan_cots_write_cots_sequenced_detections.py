@@ -17,7 +17,7 @@ import rospy
 import json
 from rospy_message_converter import message_converter
 # ccip_msgs is a module which contains the messages that are sent when COTS is detected
-from reefscan_cots_detector.msg import CotsSequence, CotsDetection, CotsMaximumScore, CotsConfirmedClass
+from reefscan_cots_detector.msg import CotsSequenceWithoutImage, CotsDetection, CotsMaximumScore, CotsConfirmedClass
 from reefscan_image_utils import resize_for_preview
 from refscan_utils import write_csv_row, read_all_from_csv, get_ten_photos_around, get_destination_folder
 
@@ -26,7 +26,7 @@ from refscan_utils import write_csv_row, read_all_from_csv, get_ten_photos_aroun
 # Topic to subscribe to COTS detection information
 from sequence_writer_helper import get_filename_to_write, get_json_for_file_write
 
-TOPIC_REEFSCAN_COTS_SEQUENCE = '/reefscan_cots_sequence'
+TOPIC_REEFSCAN_COTS_SEQUENCE_WITHOUT_IMAGES = '/reefscan_cots_sequence_without_images'
 # reefscan_cots_write_cots_sequenced_detections.py}
 PARAM_DATA_FOLDER = "/reefscan_data_folder"
 
@@ -36,7 +36,7 @@ class ReefscanCotsSequencedDetectionRecorder(object):
     def __init__(self):
         rospy.loginfo("initing")
         # Subscribe to topic for new images
-        self.sub_reefscan_cots_sequence = rospy.Subscriber(TOPIC_REEFSCAN_COTS_SEQUENCE, CotsSequence,  self.write_cots_detection_information)
+        self.sub_reefscan_cots_sequence = rospy.Subscriber(TOPIC_REEFSCAN_COTS_SEQUENCE_WITHOUT_IMAGES, CotsSequenceWithoutImage,  self.write_cots_detection_information)
         self.data_folder, self.error_flag, self.error_message = get_destination_folder()
 
     

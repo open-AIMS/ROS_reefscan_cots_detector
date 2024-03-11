@@ -28,7 +28,7 @@ from cv_bridge import CvBridge, CvBridgeError
 import random
 # ccip_msgs is a module which contains the messages that are sent when COTS is detected
 from ccip_msgs.msg import DetectionResult, Detection, SequencedDetection, FrameDetections
-from reefscan_cots_detector.msg import CotsSequence, CotsDetection, CotsMaximumScore
+from reefscan_cots_detector.msg import CotsSequence, CotsSequenceWithoutImage, CotsDetection, CotsMaximumScore
 from reefscan_image_utils import resize_for_preview
 
 
@@ -40,6 +40,8 @@ from sequencer_helper import SequencerHelper
 TOPIC_REEFSCAN_COTS_DETECTED = '/detections'
 # Topic to publish messages
 TOPIC_REEFSCAN_COTS_SEQUENCE = '/reefscan_cots_sequence'
+
+TOPIC_REEFSCAN_COTS_SEQUENCE_WITHOUT_IMAGES = '/reefscan_cots_sequence_without_images'
 
 
 PARAM_DATA_FOLDER = "/reefscan_data_folder"
@@ -61,10 +63,12 @@ class ReefscanCotsSequencer():
     # Description:  Initialise counters and create ROS publisher and scubscriber objects
     def __init__(self):
         rospy.loginfo("init.")
-        self.helper = SequencerHelper(_read_image=self._read_image, publish_sequence=self.publish_sequence)
         self.cv_bridge = CvBridge()
+        self.helper = SequencerHelper(_read_image=self._read_image, publish_sequence_with_images=self.publish_sequence_with_images, publish_sequence_without_images=self.publish_sequence_without_images )
         self.sub_reefscan_cots_detected = rospy.Subscriber(TOPIC_REEFSCAN_COTS_DETECTED, FrameDetections,  self.helper.restructure_cots_detected)
-        self.pub_reefscan_cots_sequence = rospy.Publisher(TOPIC_REEFSCAN_COTS_SEQUENCE, CotsSequence , queue_size=1)
+        self.pub_reefscan_cots_sequence_with_images = rospy.Publisher(TOPIC_REEFSCAN_COTS_SEQUENCE, CotsSequence , queue_size=1)
+        self.pub_reefscan_cots_sequence_without_images  = rospy.Publisher(TOPIC_REEFSCAN_COTS_SEQUENCE_WITHOUT_IMAGES, CotsSequenceWithoutImage, queue_size=1)
+
         self.timer = rospy.Timer(rospy.Duration(1.0), self.helper.publish_sequences)
 
 
@@ -81,8 +85,11 @@ class ReefscanCotsSequencer():
         photo_compressed_msg.header.frame_id = filename
         return photo_compressed_msg
 
-    def publish_sequence(self, cots_sequence):
-        self.pub_reefscan_cots_sequence.publish(cots_sequence)
+    def publish_sequence_with_images(self, cots_sequence):
+        self.pub_reefscan_cots_sequence_with_images.publish(cots_sequence)
+    
+    def publish_sequence_without_images(self, cots_sequence):
+        self.pub_reefscan_cots_sequence_without_images.publish(cots_sequence)
 
 
 if __name__ == '__main__':

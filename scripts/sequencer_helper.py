@@ -1,7 +1,7 @@
 import time
 
 from ccip_msgs.msg import DetectionResult, Detection, SequencedDetection, FrameDetections
-from reefscan_cots_detector.msg import CotsSequence, CotsDetection, CotsMaximumScore
+from reefscan_cots_detector.msg import CotsSequence, CotsSequenceWithoutImage, CotsDetection, CotsDetectionWithoutImage, CotsMaximumScore
 
 # Most of the functionality from the COTS sequencer has been extracted to this helper class
 # This class has no reference to any ROS specific code so it can be tested independantly of ROS
@@ -9,9 +9,10 @@ include_images = True
 class SequencerHelper():
     # Function:     __init(self)
     # Description:  Initialise counters and create ROS publisher and scubscriber objects
-    def __init__(self, _read_image, publish_sequence):
+    def __init__(self, _read_image, publish_sequence_with_images, publish_sequence_without_images):
         self._read_image = _read_image
-        self.publish_sequence = publish_sequence
+        self.publish_sequence_with_images = publish_sequence_with_images
+        self.publish_sequence_without_images = publish_sequence_without_images
         self.sequences = {}
         self.max_scores = {}
         self.seen = {}
@@ -22,8 +23,58 @@ class SequencerHelper():
     def stamp_to_float(self, stamp):
         return stamp.secs + stamp.nsecs/1000000
 
-    # Function:     restructure_cots_detected(self, data)
-    # Description:  Callback that ROS invokes when an Image is received.  Triggers the COTS detection simulated event
+    def publish_sequence(sequence, with_images=True):
+        if with_images:
+            cots_sequence = CotsSequence()
+        else:
+            cots_sequence = CotsSequenceWithoutImage()
+        cots_sequence.sequence_id = int(sequence_id)
+        cots_sequence.sequence_length = sequence['sequence_length']
+        cots_sequence.size = sequence['size']
+        cots_sequence.detection = []
+        for detection in sequence['detection']:
+            if with_images:
+                cots_detection = CotsDetection()
+                cots_detection.image = detection["Image"]
+            else:
+                cots_detection = CotsDetectionWithoutImage()
+
+            cots_detection.detection_id = detection['detection_id']
+            cots_detection.filename = detection["filename"]
+            cots_detection.left = detection["left"]
+            cots_detection.top = detection["top"]
+            cots_detection.width = detection["width"]
+            cots_detection.height = detection["height"]
+            cots_detection.detection_results = []
+            # rospy.loginfo(cots_detection)
+
+            for score in detection['scores']:
+                d = DetectionResult()
+                d.class_id = score['class_id']
+                d.score = score['score']
+                cots_detection.detection_results.append(d)
+            cots_sequence.detection.append(cots_detection)
+
+        # Calculate the maximum score for each class that is detected and insert into message
+        maximum_scores = []
+        for class_id in self.max_scores[str(sequence_id)]:
+            # self.max_scores[str(result.sequence_id)][str(detection_result.class_id)] = detection_result.score
+            cots_maximum_score = CotsMaximumScore()
+            cots_maximum_score.class_id = int(class_id)
+            cots_maximum_score.maximum_score = self.max_scores[str(sequence_id)][class_id]
+            maximum_scores.append(cots_maximum_score)
+        cots_sequence.maximum_scores = maximum_scores
+
+        # rospy.loginfo(cots_sequence)
+
+        # Send the FrameDetection message
+        # rospy.loginfo(cots_sequence)
+        if with_images:
+            self.publish_sequence_with_images(cots_sequence)
+        else:
+            self.publish_sequence_without_images(cots_sequence)
+
+
     def restructure_cots_detected(self, frame_detection):
         # rospy.loginfo("restructure.")
         if self.updating == True:
@@ -147,57 +198,9 @@ class SequencerHelper():
             if self.seen[sequence_id] < self.last_time - 1:
                 # rospy.loginfo(sequence_id)
                 sequence = self.sequences[sequence_id]
-                cots_sequence = CotsSequence()
-                cots_sequence.sequence_id = int(sequence_id)
-                cots_sequence.sequence_length = sequence['sequence_length']
-                cots_sequence.size = sequence['size']
-                cots_sequence.detection = []
-                for detection in sequence['detection']:
-                    cots_detection = CotsDetection()
-                    cots_detection.detection_id = detection['detection_id']
-                    if "Image" in detection:
-                        cots_detection.image = detection["Image"]
-                    else:
-                        # rospy.loginfo("image missing from cots_detection during publish. sequence id %d" % sequence_id)
-                        # rospy.loginfo(str(cots_detection))
-                        pass
 
-                    if "detection_id" in detection:
-                        cots_detection.detection_id = detection["detection_id"]
-                    else:
-                        # rospy.loginfo("detection_id missing from cots_detection during publish")
-                        # rospy.loginfo(str(cots_detection))
-                        pass
-                    cots_detection.filename = detection["filename"]
-                    cots_detection.left = detection["left"]
-                    cots_detection.top = detection["top"]
-                    cots_detection.width = detection["width"]
-                    cots_detection.height = detection["height"]
-                    cots_detection.detection_results = []
-                    # rospy.loginfo(cots_detection)
-
-                    for score in detection['scores']:
-                        d = DetectionResult()
-                        d.class_id = score['class_id']
-                        d.score = score['score']
-                        cots_detection.detection_results.append(d)
-                    cots_sequence.detection.append(cots_detection)
-
-                # Calculate the maximum score for each class that is detected and insert into message
-                maximum_scores = []
-                for class_id in self.max_scores[str(sequence_id)]:
-                    # self.max_scores[str(result.sequence_id)][str(detection_result.class_id)] = detection_result.score
-                    cots_maximum_score = CotsMaximumScore()
-                    cots_maximum_score.class_id = int(class_id)
-                    cots_maximum_score.maximum_score = self.max_scores[str(sequence_id)][class_id]
-                    maximum_scores.append(cots_maximum_score)
-                cots_sequence.maximum_scores = maximum_scores
-
-                # rospy.loginfo(cots_sequence)
-
-                # Send the FrameDetection message
-                # rospy.loginfo(cots_sequence)
-                self.publish_sequence(cots_sequence)
+                self.publish_sequence(sequence, with_images=True)
+                self.publish_sequence(sequence, with_images=False)
 
                 # Record the sequences that we intend to send so they can be removed from our list of sequences we have seen
                 delete[sequence_id] = True
