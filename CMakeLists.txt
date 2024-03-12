@@ -53,8 +53,10 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   CotsDetection.msg
+  CotsDetectionWithoutImage.msg
   CotsMaximumScore.msg
   CotsSequence.msg
+  CotsSequenceWithoutImage.msg
   CotsConfirmedClass.msg
 )
 

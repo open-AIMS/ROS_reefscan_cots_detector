@@ -1,0 +1,10 @@
+string filename
+string reefscan_sequence_name
+float64 latitude
+float64 longitude
+int64 detection_id
+ccip_msgs/DetectionResult[] detection_results
+float64 left
+float64 top
+float64 width
+float64 height
